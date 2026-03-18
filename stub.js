@@ -37,7 +37,7 @@
    // ============================================================
    //  GITHUB PAYLOAD CONFIG — fill these in
    // ============================================================
-   const GITHUB_USER = 'FergusNally';
+   const GITHUB_USER = 'FergusNallyy';
    const GITHUB_REPO = 'century-tech-validation';
    const GITHUB_FILE = 'payload.js';          // path inside repo
    const GITHUB_BRANCH = 'main';
