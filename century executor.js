@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Century Tech Solver
 // @namespace    http://tampermonkey.net/
-// @version      3.0
+// @version      3.1
 // @description  Auto-solver for Century Tech
 // @author       Funguy
 // @match        https://app.century.tech/*
@@ -37,8 +37,8 @@
    // ============================================================
    //  GITHUB PAYLOAD CONFIG — fill these in
    // ============================================================
-   const GITHUB_USER = 'YOUR_GITHUB_USERNAME';
-   const GITHUB_REPO = 'YOUR_PRIVATE_REPO_NAME';
+   const GITHUB_USER = 'FergusNally';
+   const GITHUB_REPO = 'century-tech-validation';
    const GITHUB_FILE = 'payload.js';          // path inside repo
    const GITHUB_BRANCH = 'main';
 
@@ -134,7 +134,7 @@
 
       const rows = await supabaseGet(
          `${SUPABASE_URL}/rest/v1/licence_keys?key=eq.${encoded}&active=eq.true` +
-         `&select=key,hwid,github_pat,anthropic_key,gemini,groq_key`
+         `&select=key,hwid,github_pat,"anthropic key",gemini,"groq key"`
       );
 
       if (!Array.isArray(rows) || rows.length === 0) return { valid: false };
