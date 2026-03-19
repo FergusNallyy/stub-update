@@ -1,7 +1,7 @@
    // ==UserScript==
    // @name         Century Tech Solver
    // @namespace    http://tampermonkey.net/
-   // @version      3.9
+   // @version      3.10
    // @description  Auto-solver for Century Tech
    // @author       Funguy
    // @match        https://app.century.tech/*
@@ -181,18 +181,9 @@
                   .join('/');
             };
 
-            const tryFile = (idx) => {
-               if (idx >= candidateFiles.length) {
-                  reject(new Error(
-                     `Payload file not found in repo (${GITHUB_USER}/${GITHUB_REPO}@${GITHUB_BRANCH}). Tried: ${tried.join(', ')}`
-                  ));
-                  return;
-               }
-
-               const filePath = candidateFiles[idx];
+            const fetchByPath = (filePath, onDone) => {
                const encodedPath = toContentsPath(filePath);
                const url = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${encodedPath}?ref=${GITHUB_BRANCH}`;
-               tried.push(filePath);
                GM_xmlhttpRequest({
                   method: 'GET',
                   url,
@@ -202,19 +193,85 @@
                      'X-GitHub-Api-Version': '2022-11-28'
                   },
                   timeout: 15000,
+                  onload: onDone,
+                  onerror: () => reject(new Error('GitHub network error')),
+                  ontimeout: () => reject(new Error('GitHub fetch timed out'))
+               });
+            };
+
+            const findPayloadPathInRepo = () => {
+               const treeUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/git/trees/${encodeURIComponent(GITHUB_BRANCH)}?recursive=1`;
+               GM_xmlhttpRequest({
+                  method: 'GET',
+                  url: treeUrl,
+                  headers: {
+                     'Authorization': `Bearer ${pat}`,
+                     'Accept': 'application/vnd.github+json',
+                     'X-GitHub-Api-Version': '2022-11-28'
+                  },
+                  timeout: 15000,
                   onload: res => {
                      if (res.status === 200) {
-                        resolve(res.responseText);
+                        try {
+                           const json = JSON.parse(res.responseText || '{}');
+                           const files = Array.isArray(json.tree) ? json.tree : [];
+                           const candidates = files
+                              .filter(n => n && n.type === 'blob' && typeof n.path === 'string' && /(^|\/)payload\.js$/i.test(n.path))
+                              .map(n => n.path);
+
+                           if (candidates.length === 0) {
+                              reject(new Error(
+                                 `Payload file not found in repo (${GITHUB_USER}/${GITHUB_REPO}@${GITHUB_BRANCH}). Tried: ${tried.join(', ')}`
+                              ));
+                              return;
+                           }
+
+                           // Prefer expected locations first if present.
+                           const preferred = candidates.find(p => /(^|\/)paid\/payload\.js$/i.test(p)) ||
+                              candidates.find(p => /(^|\/)payload\.js$/i.test(p)) ||
+                              candidates[0];
+
+                           fetchByPath(preferred, fileRes => {
+                              if (fileRes.status === 200) {
+                                 resolve(fileRes.responseText);
+                              } else if (fileRes.status === 401 || fileRes.status === 403) {
+                                 reject(new Error('GitHub auth failed — PAT may be expired'));
+                              } else {
+                                 reject(new Error(`GitHub HTTP ${fileRes.status}`));
+                              }
+                           });
+                        } catch {
+                           reject(new Error('GitHub tree parse error'));
+                        }
                      } else if (res.status === 401 || res.status === 403) {
                         reject(new Error('GitHub auth failed — PAT may be expired'));
-                     } else if (res.status === 404) {
-                        tryFile(idx + 1);
                      } else {
                         reject(new Error(`GitHub HTTP ${res.status}`));
                      }
                   },
                   onerror: () => reject(new Error('GitHub network error')),
                   ontimeout: () => reject(new Error('GitHub fetch timed out'))
+               });
+            };
+
+            const tryFile = (idx) => {
+               if (idx >= candidateFiles.length) {
+                  findPayloadPathInRepo();
+                  return;
+               }
+
+               const filePath = candidateFiles[idx];
+               tried.push(filePath);
+               fetchByPath(filePath, res => {
+                  if (res.status === 200) {
+                     resolve(res.responseText);
+                  } else if (res.status === 401 || res.status === 403) {
+                     reject(new Error('GitHub auth failed — PAT may be expired'));
+                  } else if (res.status === 404) {
+                     tryFile(idx + 1);
+                  } else {
+                     reject(new Error(`GitHub HTTP ${res.status}`));
+                  }
                });
             };
 
