@@ -321,22 +321,53 @@
          loading.innerHTML = `
             <style>
                #ct-loading {
-                  position: fixed; bottom: 20px; right: 20px; z-index: 999999;
-                  background: #111113; border-radius: 8px; padding: 12px 20px;
-                  box-shadow: 0 4px 15px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
-                  font-family: system-ui, sans-serif; display: flex; align-items: center; gap: 12px;
+                  position: fixed; inset: 0; z-index: 999999;
+                  background: rgba(0,0,0,0.85); display: flex;
+                  align-items: center; justify-content: center;
+                  font-family: system-ui, sans-serif;
                   transition: opacity 0.3s ease;
                }
-               .ct-spinner {
-                  width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2);
-                  border-top-color: #3b82f6; border-radius: 50%;
-                  animation: ct-spin 1s linear infinite;
+               #ct-loading-box {
+                  background: #111113; border-radius: 10px; padding: 28px;
+                  width: 340px; box-shadow: 0 8px 40px rgba(0,0,0,0.7),
+                  0 0 0 1px rgba(255,255,255,0.07); text-align: center;
+                  display: flex; flex-direction: column; align-items: center; gap: 16px;
+                  animation: ct-pop 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
                }
-               @keyframes ct-spin { to { transform: rotate(360deg); } }
-               #ct-loading span { color: #e4e4e7; font-size: 13px; font-weight: 500; }
+               @keyframes ct-pop {
+                  0% { transform: scale(0.8); opacity: 0; }
+                  100% { transform: scale(1); opacity: 1; }
+               }
+               .ct-spinner-large {
+                  width: 40px; height: 40px;
+                  border: 4px solid rgba(34, 197, 94, 0.2);
+                  border-top-color: #22c55e; border-radius: 50%;
+                  animation: ct-spin-large 1s ease-in-out infinite;
+               }
+               @keyframes ct-spin-large {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+               }
+               #ct-loading-text {
+                  color: #fafafa; font-size: 15px; font-weight: 700;
+                  margin: 0; letter-spacing: 0.5px;
+               }
+               #ct-loading-sub {
+                  color: #22c55e; font-size: 12px; margin: 0;
+                  animation: ct-pulse-text 1.5s ease-in-out infinite;
+               }
+               @keyframes ct-pulse-text {
+                  0%, 100% { opacity: 0.6; }
+                  50% { opacity: 1; }
+               }
             </style>
-            <div class="ct-spinner"></div>
-            <span>Loading solver...</span>
+            <div id="ct-loading-box">
+               <div class="ct-spinner-large"></div>
+               <div>
+                  <h2 id="ct-loading-text">Century Tech Solver</h2>
+                  <p id="ct-loading-sub">Authenticating & Loading...</p>
+               </div>
+            </div>
          `;
          document.body.appendChild(loading);
       }
