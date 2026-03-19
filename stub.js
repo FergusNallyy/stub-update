@@ -166,19 +166,36 @@
             const candidateFiles = [
                GITHUB_FILE,
                'paid/payload.js',
-               'Javascript tings/paid/payload.js'
+               'Javascript tings/paid/payload.js',
+               'Javascript%20tings/paid/payload.js'
             ];
+            const tried = [];
+
+            const toContentsPath = (filePath) => {
+               const normalized = (filePath || '').replace(/^\/+/, '').trim();
+               // Encode each segment separately so '/' remains a path separator.
+               return normalized
+                  .split('/')
+                  .filter(Boolean)
+                  .map(seg => encodeURIComponent(seg))
+                  .join('/');
+            };
 
             const tryFile = (idx) => {
                if (idx >= candidateFiles.length) {
-                  reject(new Error('Payload file not found in repo'));
+                  reject(new Error(
+                     `Payload file not found in repo (${GITHUB_USER}/${GITHUB_REPO}@${GITHUB_BRANCH}). Tried: ${tried.join(', ')}`
+                  ));
                   return;
                }
 
                const filePath = candidateFiles[idx];
+               const encodedPath = toContentsPath(filePath);
+               const url = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${encodedPath}?ref=${GITHUB_BRANCH}`;
+               tried.push(filePath);
                GM_xmlhttpRequest({
                   method: 'GET',
-                  url: `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${encodeURIComponent(filePath)}?ref=${GITHUB_BRANCH}`,
+                  url,
                   headers: {
                      'Authorization': `Bearer ${pat}`,
                      'Accept': 'application/vnd.github.raw+json',
