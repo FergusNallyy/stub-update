@@ -1,7 +1,7 @@
    // ==UserScript==
    // @name         Century Tech Solver
    // @namespace    http://tampermonkey.net/
-   // @version      3.13
+   // @version      3.12
    // @description  Auto-solver for Century Tech
    // @author       Funguy
    // @match        https://app.century.tech/*
@@ -312,9 +312,48 @@
       }
 
       // ============================================================
+      //  LOADING UI
+      // ============================================================
+      function showLoading() {
+         if (document.getElementById('ct-loading')) return;
+         const loading = document.createElement('div');
+         loading.id = 'ct-loading';
+         loading.innerHTML = `
+            <style>
+               #ct-loading {
+                  position: fixed; bottom: 20px; right: 20px; z-index: 999999;
+                  background: #111113; border-radius: 8px; padding: 12px 20px;
+                  box-shadow: 0 4px 15px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+                  font-family: system-ui, sans-serif; display: flex; align-items: center; gap: 12px;
+                  transition: opacity 0.3s ease;
+               }
+               .ct-spinner {
+                  width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2);
+                  border-top-color: #3b82f6; border-radius: 50%;
+                  animation: ct-spin 1s linear infinite;
+               }
+               @keyframes ct-spin { to { transform: rotate(360deg); } }
+               #ct-loading span { color: #e4e4e7; font-size: 13px; font-weight: 500; }
+            </style>
+            <div class="ct-spinner"></div>
+            <span>Loading solver...</span>
+         `;
+         document.body.appendChild(loading);
+      }
+
+      function hideLoading() {
+         const loading = document.getElementById('ct-loading');
+         if (loading) {
+            loading.style.opacity = '0';
+            setTimeout(() => loading.remove(), 300);
+         }
+      }
+
+      // ============================================================
       //  ERROR SCREEN  (shown on any fatal failure — no bypass)
       // ============================================================
       function showError(message) {
+         hideLoading();
          // Remove licence gate if still showing
          document.getElementById('ct-licence-gate')?.remove();
 
@@ -438,6 +477,7 @@
       //  BOOT SEQUENCE
       // ============================================================
       async function boot(row) {
+         showLoading();
          // 1. Decrypt GitHub PAT from Supabase row
          if (!row.github_pat) {
             showError('No GitHub token found on licence. Contact support.');
@@ -470,7 +510,9 @@
                payloadCode
             );
             payloadFn(GM_xmlhttpRequest, GM_setValue, GM_getValue, html2canvas, row);
+            hideLoading();
          } catch (e) {
+            hideLoading();
             showError(`Solver failed to initialise: ${e.message}`);
             console.error('[Century] Payload error:', e);
          }
@@ -484,17 +526,20 @@
 
          if (savedKey) {
             // Re-validate on every load — enables revocation and HWID enforcement
+            showLoading();
             try {
                const result = await validateLicence(savedKey);
                if (result.valid === true) {
                   await boot(result.row);
                } else {
                   // Key revoked or HWID mismatch — clear and show gate
+                  hideLoading();
                   GM_setValue('licence_key', '');
                   showLicenceGate(row => boot(row));
                }
             } catch {
                // Network failure — block. No offline bypass.
+               hideLoading();
                showError('Could not reach licence server. Check your connection.');
             }
          } else {
