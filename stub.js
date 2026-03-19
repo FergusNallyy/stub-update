@@ -1,7 +1,7 @@
    // ==UserScript==
    // @name         Century Tech Solver
    // @namespace    http://tampermonkey.net/
-   // @version      3.6
+   // @version      3.8
    // @description  Auto-solver for Century Tech
    // @author       Funguy
    // @match        https://app.century.tech/*
@@ -37,9 +37,9 @@
       // ============================================================
       //  GITHUB PAYLOAD CONFIG — fill these in
       // ============================================================
-      const GITHUB_USER = 'YOUR_GITHUB_USERNAME';
-      const GITHUB_REPO = 'YOUR_PRIVATE_REPO_NAME';
-      const GITHUB_FILE = 'payload.js';          // path inside repo
+      const GITHUB_USER = 'FergusNallyy';
+      const GITHUB_REPO = 'stub-update';
+      const GITHUB_FILE = 'payload.js';          // default path inside repo
       const GITHUB_BRANCH = 'main';
 
       // ============================================================
@@ -158,29 +158,50 @@
       // ============================================================
       function fetchPayload(pat) {
          return new Promise((resolve, reject) => {
-            GM_xmlhttpRequest({
-               method: 'GET',
-               url: `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${GITHUB_FILE}?ref=${GITHUB_BRANCH}`,
-               headers: {
-                  'Authorization': `Bearer ${pat}`,
-                  'Accept': 'application/vnd.github.raw+json',
-                  'X-GitHub-Api-Version': '2022-11-28'
-               },
-               timeout: 15000,
-               onload: res => {
-                  if (res.status === 200) {
-                     resolve(res.responseText);
-                  } else if (res.status === 401 || res.status === 403) {
-                     reject(new Error('GitHub auth failed — PAT may be expired'));
-                  } else if (res.status === 404) {
-                     reject(new Error('Payload file not found in repo'));
-                  } else {
-                     reject(new Error(`GitHub HTTP ${res.status}`));
-                  }
-               },
-               onerror: () => reject(new Error('GitHub network error')),
-               ontimeout: () => reject(new Error('GitHub fetch timed out'))
-            });
+            if (!GITHUB_USER || !GITHUB_REPO) {
+               reject(new Error('GitHub config missing: set GITHUB_USER and GITHUB_REPO'));
+               return;
+            }
+
+            const candidateFiles = [
+               GITHUB_FILE,
+               'paid/payload.js',
+               'Javascript tings/paid/payload.js'
+            ];
+
+            const tryFile = (idx) => {
+               if (idx >= candidateFiles.length) {
+                  reject(new Error('Payload file not found in repo'));
+                  return;
+               }
+
+               const filePath = candidateFiles[idx];
+               GM_xmlhttpRequest({
+                  method: 'GET',
+                  url: `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${encodeURIComponent(filePath)}?ref=${GITHUB_BRANCH}`,
+                  headers: {
+                     'Authorization': `Bearer ${pat}`,
+                     'Accept': 'application/vnd.github.raw+json',
+                     'X-GitHub-Api-Version': '2022-11-28'
+                  },
+                  timeout: 15000,
+                  onload: res => {
+                     if (res.status === 200) {
+                        resolve(res.responseText);
+                     } else if (res.status === 401 || res.status === 403) {
+                        reject(new Error('GitHub auth failed — PAT may be expired'));
+                     } else if (res.status === 404) {
+                        tryFile(idx + 1);
+                     } else {
+                        reject(new Error(`GitHub HTTP ${res.status}`));
+                     }
+                  },
+                  onerror: () => reject(new Error('GitHub network error')),
+                  ontimeout: () => reject(new Error('GitHub fetch timed out'))
+               });
+            };
+
+            tryFile(0);
          });
       }
 
