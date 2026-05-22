@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Century Tech Solver
 // @namespace    http://tampermonkey.net/
-// @version      5.2
+// @version      6.0
 // @description  Auto-solver for Century Tech
 // @author       Funguy
 // @match        https://app.century.tech/*
