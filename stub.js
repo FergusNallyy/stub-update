@@ -14,7 +14,6 @@
 // @connect      *.workers.dev
 // @connect      api.github.com
 // @connect      raw.githubusercontent.com
-// @connect      generativelanguage.googleapis.com
 // @connect      api.groq.com
 // @connect      api.anthropic.com
 // @connect      api.ocr.space
