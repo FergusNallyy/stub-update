@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      6.0
 // @description  Auto-solver for Century Tech
-// @author       Funguy
+// @author       Century Solutions
 // @match        https://app.century.tech/*
 // @match        https://learn.century.tech/*
 // @match        https://*.century.tech/*
